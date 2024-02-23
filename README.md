@@ -1,2 +1,4 @@
 # Rubik
-An example of pattern recognition and manipulation using data from a rubik's cube
+
+# Currently in development.
+# Please stand by!

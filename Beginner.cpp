@@ -12,82 +12,6 @@ using namespace std;
 
 string iv = "Invalid cube -- no solutions possible. Make sure you have entered your cube's state correctly.";
 
-vector<int> getAllState(Cube c){
-
-	vector<int> allState;
-	
-	allState.push_back(c.up.getupper().getright());
-	allState.push_back(c.up.getupper().getleft());
-	allState.push_back(c.up.getlower().getright());
-	allState.push_back(c.up.getlower().getleft());
-	
-	allState.push_back(c.down.getupper().getright());
-	allState.push_back(c.down.getupper().getleft());
-	allState.push_back(c.down.getlower().getright());
-	allState.push_back(c.down.getlower().getleft());
-	
-	allState.push_back(c.right.getupper().getright());
-	allState.push_back(c.right.getupper().getleft());
-	allState.push_back(c.right.getlower().getright());
-	allState.push_back(c.right.getlower().getleft());
-	
-	allState.push_back(c.left.getupper().getright());
-	allState.push_back(c.left.getupper().getleft());
-	allState.push_back(c.left.getlower().getright());
-	allState.push_back(c.left.getlower().getleft());
-	
-	allState.push_back(c.front.getupper().getright());
-	allState.push_back(c.front.getupper().getleft());
-	allState.push_back(c.front.getlower().getright());
-	allState.push_back(c.front.getlower().getleft());
-	
-	allState.push_back(c.back.getupper().getright());
-	allState.push_back(c.back.getupper().getleft());
-	allState.push_back(c.back.getlower().getright());
-	allState.push_back(c.back.getlower().getleft());
-	
-	return allState;
-
-}
-
-// messWithCube(1, similarList, actionSeriesList, vector<int>(), c, allStateOriginal);
-void messWithCube(int remainingMove, vector<int> &similarList, vector<vector<int>> &actionSeriesList, vector<int> currentActionSeries, Cube &c, vector<int> allStateOriginal){
-
-	Cube copy = c;
-	
-	currentActionSeries.push_back(-1);
-
-	for(int i=0; i<12; i++){
-	
-		switch(i){
-		case 0: c.U();   break;
-		case 1: c.Up();  break;
-		case 2: c.R();   break;
-		case 3: c.Rp();  break;
-		case 4: c.L();   break;
-		case 5: c.Lp();  break;
-		case 6: c.F();   break;
-		case 7: c.Fp();  break;
-		case 8: c.B();   break;
-		case 9: c.Bp();  break;
-		case 10: c.D();  break;
-		case 11: c.Dp(); break;
-		}
-		
-		currentActionSeries[currentActionSeries.size()-1] = i;
-		
-		vector<int> allStateNew = getAllState(c);
-		
-		int similar(0);
-		for(int i=0; i<allStateOriginal.size(); i++) similar+=(allStateOriginal[i]==allStateNew[i]);
-		similarList.push_back(similar);
-		actionSeriesList.push_back(currentActionSeries);
-		c = copy;
-		if(remainingMove==0) return;
-		messWithCube(remainingMove-1, similarList, actionSeriesList, currentActionSeries, c, allStateOriginal);
-	}
-}
-
 int readChar() {
 	while (true) {
 		char c = getchar();
@@ -1201,53 +1125,6 @@ vector<Cube> beginnersMethod(Cube &c) {
 	cubeList.push_back(c);
 	return cubeList;
 }
-
-void inputSolvedCube(Cube &c) {
-	c.set(0, 0, 0, 0, 0); // up
-	c.set(3, 1, 1, 1, 1); // front
-	c.set(1, 2, 2, 2, 2); // right
-	c.set(4, 3, 3, 3, 3); // back
-	c.set(2, 4, 4, 4, 4); // left
-	c.set(5, 5, 5, 5, 5); // down
-}
-
-void cubeManip(Cube &c){
-	c.Up(); c.B(); c.Up(); c.Bp();
-	for(int i=0; i<3; i++){c.U(); c.B(); c.Up(); c.Bp();}
-	c.D();
-	for(int i=0; i<4; i++){c.U(); c.B(); c.Up(); c.Bp();}
-	c.D();
-	for(int i=0; i<4; i++){c.U(); c.B(); c.Up(); c.Bp();}
-}
-
-void generateTestCube(Cube &c, int iteration) {
-
-	cout << "Generating a test cube..." << endl;
-	inputSolvedCube(c);
-	/* Perform 20 random turns to scramble the cube */
-	int turn;
-	cout << "Turns from solved cube: ";
-	for (int i = 0; i < iteration; i++) {
-		turn = rand() % 12; // 12 possible turns
-		switch (turn) {
-		case 0: c.U(); break;
-		case 1: c.Up(); break;
-		case 2: c.R(); break;
-		case 3: c.Rp(); break;
-		case 4: c.L(); break;
-		case 5: c.Lp(); break;
-		case 6: c.F(); break;
-		case 7: c.Fp(); break;
-		case 8: c.B(); break;
-		case 9: c.Bp(); break;
-		case 10: c.D(); break;
-		case 11: c.Dp(); break;
-		}
-	}
-
-	c.displayCube();
-}
-
 
 
 

@@ -1,301 +1,6 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <algorithm>
-#include <cstdlib>
-#include <ctime>
-#include <time.h>
-#include <stdio.h>
-#include <set>
-
-#include "Cube.h"
-#include "Beginner.h"
-
-using namespace std;
-
-// Original values
-struct Set{
-	string name;
-	vector<int> valueList;
-};
-
-// Pattern common value
-struct PCV{
-	vector<pair<Set*,int>> valueList;
-	bool reversed = false;
-};
-
-// Pattern equal value
-struct PEV{
-	vector<pair<Set*,int>> valueList;
-	vector<int> equalValueList;
-	bool reversed = false;
-};
-
-// Sub-Condition
-struct SC{
-	vector<PCV> pcvList;
-	vector<PEV> pevList;
-	int checkState = 0; // Undefined - false - true
-};
-
-// Top-Condition
-struct TC{
-	string name;
-	vector<pair<vector<TC>,vector<SC>>> conditionList; // Respect one of them
-	int checkState = 0; // Undefined - false - true
-};
-
-
-
-// Swap (0:4), Turn (0:8)
-void directAction(vector<int> actionList, Cube &c){
-	// Change side
-	if(actionList[0] != 0) c.moveSide(actionList[0]-1);
-	// Rotate cube
-	switch(actionList[1]){
-	case 1: c.U(); break;
-	case 2: c.D(); break;
-	case 3: c.R(); break;
-	case 4: c.L(); break;
-	}
-}
-
-void loadSet(vector<Set*>& setList, Cube &c){
-    setList[0]->valueList = {c.front.getupper().getleft(), c.front.getupper().getright(), c.front.getlower().getleft(), c.front.getlower().getright()};
-    setList[1]->valueList = {c.right.getupper().getleft(), c.right.getupper().getright(), c.right.getlower().getleft(), c.right.getlower().getright()};
-    setList[2]->valueList = {c.back.getupper().getleft(), c.back.getupper().getright(), c.back.getlower().getleft(), c.back.getlower().getright()};
-    setList[3]->valueList = {c.left.getupper().getleft(), c.left.getupper().getright(), c.left.getlower().getleft(), c.left.getlower().getright()};
-    setList[4]->valueList = {c.up.getupper().getleft(), c.up.getupper().getright(), c.up.getlower().getleft(), c.up.getlower().getright()};
-    setList[5]->valueList = {c.down.getupper().getleft(), c.down.getupper().getright(), c.down.getlower().getleft(), c.down.getlower().getright()};
-}
-
-void printPCV(PCV pcv){
-	if(pcv.reversed) cout << "  Diff value : ";
-	else cout << "  Same value : ";
-	for(pair<Set*,int> value : pcv.valueList) cout << value.first->name << "/" << value.second << " ";
-	cout << endl;
-}
-
-void printPEV(PEV pev){
-	if(pev.reversed) cout << "  Not equal : ";
-	else cout << "  Equal : ";
-	for(pair<Set*,int> value : pev.valueList) cout << value.first->name << "/" << value.second << " ";
-	cout << "with {";
-	for(int equalValue : pev.equalValueList) cout << equalValue << " ";
-	cout << "}" << endl;
-}
-
-void printSC(SC sc){
-	for(PCV pcv : sc.pcvList) printPCV(pcv);
-	for(PEV pev : sc.pevList) printPEV(pev);
-}
-
-void printTC(TC tcOriginal){
-	for(int i=0; i<tcOriginal.conditionList.size(); i++){
-		auto subCond = tcOriginal.conditionList[i];
-		cout << "Sub condition " << i << ";" << endl;
-		
-		if(subCond.first.size()>0){
-			cout << "  Other TC : ";
-			for(TC tc : subCond.first) cout << tc.name << " ";
-			cout << endl;
-		}
-		
-		for(SC sc : subCond.second) printSC(sc);
-	}
-}
-
-bool checkSC(SC scOriginal){
-	for(PCV pcv : scOriginal.pcvList){
-		vector<int> valueList;
-		for(pair<Set*,int> value : pcv.valueList) valueList.push_back(value.first->valueList[value.second]);
-		
-		/*cout << "Check equal (" << pcv.reversed << "): ";
-		for(int element : valueList) cout << element << " ";
-		cout << endl;*/
-		
-		if(pcv.reversed){
-			set<int> uniqueValues(valueList.begin(), valueList.end());
-			if(uniqueValues.size()!=valueList.size()) return false;
-		}
-		else{			
-			int firstVal = valueList[0];
-			for(int i=1; i<valueList.size(); i++){
-				if(valueList[i]!=firstVal) return false;
-			}
-		}
-	}
-	for(PEV pev : scOriginal.pevList){
-	
-		/*cout << "Check in list (" << pev.reversed << "): ";
-		for(pair<Set,int> element : pev.valueList) cout << element.first.valueList[element.second] << " ";
-		cout << "{";
-		for(int element : pev.equalValueList) cout << element << " ";
-		cout << "}" << endl;*/
-		
-		if(pev.reversed){
-			for(pair<Set*,int> value : pev.valueList){
-				int currentVal = value.first->valueList[value.second];
-				if(find(pev.equalValueList.begin(), pev.equalValueList.end(), currentVal)!=pev.equalValueList.end()) return false;
-			}
-		}
-		else{
-			for(pair<Set*,int> value : pev.valueList){
-				int currentVal = value.first->valueList[value.second];
-				if(find(pev.equalValueList.begin(), pev.equalValueList.end(), currentVal)==pev.equalValueList.end()) return false;
-			}
-		}
-	}
-	return true;
-}
-
-bool checkTC(TC tcOriginal){
-	for(int i=0; i<tcOriginal.conditionList.size(); i++){
-		auto subCond = tcOriginal.conditionList[i];
-		cout << "==== SUBCOND " << i << " ====" << endl;
-		
-		// Check top-condition
-		bool checkedTC(true);
-		for(TC tc : subCond.first){
-			if(!checkTC(tc)){
-				checkedTC=false;
-				break;
-			}
-		}
-		if(!checkedTC){
-			cout << "Failure" << endl;
-			continue;
-		}
-		
-		// Check sub-condition
-		for(SC sc : subCond.second){
-			if(!checkSC(sc)) break;
-			cout << "Success" << endl;
-			return true;
-		}
-		
-		cout << "Failure" << endl;
-	}
-	return false;
-}
-
-vector<PCV> stateComposition(vector<Set*>& setList, Cube &c){
-	loadSet(setList, c);
-	//c.displayCube();
-	
-	vector<PCV> patternCommonValueList;
-	
-	for(int i=0; i<setList.size(); i++){
-		Set *firstSet = setList[i];
-		for(int j=0; j<firstSet->valueList.size(); j++){
-		
-			int firstVal(firstSet->valueList[j]);
-		
-			bool valueAlreadyStudied(false);
-			for(PCV patternCommonValue : patternCommonValueList){
-			
-				int previousValue(patternCommonValue.valueList[0].first->valueList[patternCommonValue.valueList[0].second]);
-				
-				if(previousValue == firstVal){
-					valueAlreadyStudied=true;
-					break;
-				}
-			}
-			
-			if(valueAlreadyStudied) continue;
-		
-			PCV patternCommonValue;
-			patternCommonValue.valueList.push_back({firstSet,j});
-			for(int k=i; k<setList.size(); k++){
-				Set *secondSet = setList[k];
-				for(int l=0; l<secondSet->valueList.size(); l++){
-					if(i==k && l<=j) continue;
-					int secondVal(secondSet->valueList[l]);
-					if(firstVal == secondVal) patternCommonValue.valueList.push_back({secondSet,l});
-				}
-			}
-			
-			patternCommonValueList.push_back(patternCommonValue);
-		}
-	}
-	
-	//for(PCV pcv : patternCommonValueList) printPCV(pcv);
-	//cout << endl;
-	return patternCommonValueList;
-	
-}
-
-vector<PCV> correctComposition(vector<PCV> pCVL1, vector<PCV> pCVL2){
-	
-	vector<PCV> correctedPCVList;
-	
-	for(PCV pcv1 : pCVL1){
-		PCV retainedPCV;
-		int maxSize(1);
-		for(PCV pcv2 : pCVL2){
-			
-			PCV correctedPCV;
-			
-			for(pair<Set*,int> value1 : pcv1.valueList){
-				for(pair<Set*,int> value2 : pcv2.valueList){
-					
-					if(value1.first->name == value2.first->name && value1.second == value2.second){
-						correctedPCV.valueList.push_back(value1);
-					}
-				}
-			}
-			
-			//cout << "========" << endl;
-			//printPCV(pcv1);
-			//printPCV(pcv2);
-			if(correctedPCV.valueList.size()>maxSize){
-				//cout << "  Retained " << correctedPCV.valueList.size() << endl;
-				maxSize = correctedPCV.valueList.size();
-				retainedPCV = correctedPCV;
-			}
-		}
-		if(retainedPCV.valueList.size()>0) correctedPCVList.push_back(retainedPCV);
-		//exit(1);
-	}
-	
-	//for(PCV pcv : correctedPCVList) printPCV(pcv);
-	//cout << endl;
-	return correctedPCVList;
-}
-
-
-vector<pair<Set*,int>> getSimilarList(vector<Set> setListPrev, vector<Set*> &setListNew){
-	vector<pair<Set*,int>> similarList;
-	
-	for(int i=0; i<setListPrev.size(); i++){
-		Set setPrev = setListPrev[i];
-		Set *setNew = setListNew[i];
-		
-		for(int j=0; j<setPrev.valueList.size(); j++){
-			if(setPrev.valueList[j]==setNew->valueList[j]) similarList.push_back({setNew,j});
-		}
-		
-	}
-	
-	return similarList;
-	
-}
-
-streambuf* mute(){
-	ofstream null_stream("/dev/null");
-	streambuf* old_cout = cout.rdbuf();
-	cout.rdbuf(null_stream.rdbuf());
-	return old_cout;
-}
-
-void activate(streambuf* old_cout){
-	cout.rdbuf(old_cout);
-}
+#include "utils.h"
 
 int main(){
-
-
 
 	//////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////
@@ -306,14 +11,6 @@ int main(){
 	// 4) Create logic to reach states from experimentation (hard)
 	//////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
 
 	cout << "Welcome to the 2x2 Rubik's Cube Solver!" << endl << endl;
 	
@@ -420,10 +117,76 @@ int main(){
 		scStateList.push_back(scState);
 	}
 	
+	inputSolvedCube(c);
+	
+	vector<vector<int>> actionSuperList;
+	vector<Cube> outcomeCube;
+	
+	getCubeList(1, actionSuperList, outcomeCube, vector<int>(), c);
+	
+	/*for(int i=0; i<actionSuperList.size(); i++){
+		vector<int> actionList = actionSuperList[i];
+		for(int action : actionList) cout << action << " ";
+		cout << endl;
+		outcomeCube[i].displayCube();
+	}*/
+	
+	
+	for(int i=0; i<actionSuperList.size(); i++){
+		vector<pair<Set*,int>> differentList;
+		for(int j=0; j<10; j++){
+		
+			streambuf* old_cout = mute();
+			
+			generateTestCube(c, 500);
+			
+			loadSet(setList, c);
+			vector<Set> initList;
+			for(Set* ptr : setList) initList.push_back(*ptr);
+			
+			for(int action : actionSuperList[i]) directAction({0,action},c);
+			
+			loadSet(setList, c);
+			vector<pair<Set*,int>> newDifferentList = getDifferentList(initList, setList);
+			
+			activate(old_cout);
+			
+			for(pair<Set*,int> newDifferent : newDifferentList){
+				bool foundDiff(true);
+				for(pair<Set*,int> different : differentList){
+					if(newDifferent == different){
+						foundDiff=false;
+						break;
+					}
+				}
+				if(foundDiff) differentList.push_back(newDifferent);
+			}
+		}
+		
+		
+    	sort(differentList.begin(), differentList.end(), sortSet);
+    
+		cout << "------------------" << endl;
+		for(int action : actionSuperList[i]) cout << action << " ";
+		cout << endl;
+		for(pair<Set*,int> different : differentList){
+			cout << different.first->name << "/" << different.second << endl;
+		}
+		cout << "==================" << endl;
+		
+	}
+	
+	
+	
+	
+	
+	
+	return 1;
+	
 	// States to reach
 	cout << endl << "States to reach" << endl;
 	cout << "=============" << endl;
-	for(int i=0; i<scStateList.size(); i++){
+	for(int i=1; i<scStateList.size()-1; i++){
 		cout << "State " << i << ":" << endl;
 		printSC(scStateList[i]);
 	}
@@ -431,8 +194,39 @@ int main(){
 	cout << endl;
 	generateTestCube(c, 20);
 	
-	cout << "Goal: study path to state 1" << endl;
+	//vector<Cube> testCubeList = beginnersMethod(c);
+	
+	for(int i=0; i<9; i++){
+		cout << "=========" << endl;
+		cout << "GOAL : STATE " << i << endl;
+		cout << "=========" << endl;
+	
+		vector<vector<int>> actionSeriesList;
 		
+		int nbTrial = 5;
+		for(int j=1; j<nbTrial; j++){
+	
+			if(!findState(j, actionSeriesList, vector<int>(), setList, c, scStateList[i])){
+				cout << "No solution found..." << endl;
+				if(j==nbTrial-1){
+					cout << "Trying randomly breaks at some point, time to apply logic" << endl;
+					exit(1);	
+				}
+			}
+			else{
+				cout << "Solution found!" << endl;
+				break;
+			}
+		
+		}
+		
+		if(actionSeriesList.size()>0){
+			for(int action : actionSeriesList.back()) directAction({0, action}, c);
+		}
+		cout << endl;		
+		c.displayCube();		
+		
+	}
 	
 	return 1;
 	

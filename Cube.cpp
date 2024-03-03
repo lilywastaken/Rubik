@@ -317,7 +317,7 @@ void Cube::U() {
 	right.setupper(back.getupper());
 	back.setupper(left.getupper());
 	left.setupper(temp);
-	cout << "U ";
+	//cout << "U ";
 }
 
 void Cube::Up() {
@@ -327,7 +327,7 @@ void Cube::Up() {
 	left.setupper(back.getupper());
 	back.setupper(right.getupper());
 	right.setupper(temp);
-	cout << "U' ";
+	//cout << "U' ";
 }
 
 void Cube::U2() {
@@ -343,7 +343,7 @@ void Cube::U2() {
 	left.setupper(back.getupper());
 	back.setupper(right.getupper());
 	right.setupper(temp);
-	cout << "U2 ";
+	//cout << "U2 ";
 }
 
 void Cube::R() {
@@ -353,7 +353,7 @@ void Cube::R() {
 	down.setrightside(back.getleftside().flip());
 	back.setleftside(up.getrightside().flip());
 	up.setrightside(temp);
-	cout << "R ";
+	//cout << "R ";
 }
 
 void Cube::Rp() {
@@ -363,7 +363,7 @@ void Cube::Rp() {
 	up.setrightside(back.getleftside().flip());
 	back.setleftside(down.getrightside().flip());
 	down.setrightside(temp);
-	cout << "R' ";
+	//cout << "R' ";
 }
 
 void Cube::R2() {
@@ -379,7 +379,7 @@ void Cube::R2() {
 	down.setrightside(back.getleftside().flip());
 	back.setleftside(up.getrightside().flip());
 	up.setrightside(temp);
-	cout << "R2 ";
+	//cout << "R2 ";
 }
 
 void Cube::L() {
@@ -389,7 +389,7 @@ void Cube::L() {
 	up.setleftside(back.getrightside().flip());
 	back.setrightside(down.getleftside().flip());
 	down.setleftside(temp);
-	cout << "L ";
+	//cout << "L ";
 }
 
 void Cube::Lp() {
@@ -399,7 +399,7 @@ void Cube::Lp() {
 	down.setleftside(back.getrightside().flip());
 	back.setrightside(up.getleftside().flip());
 	up.setleftside(temp);
-	cout << "L' ";
+	//cout << "L' ";
 }
 
 void Cube::L2() {
@@ -415,7 +415,7 @@ void Cube::L2() {
 	up.setleftside(back.getrightside().flip());
 	back.setrightside(down.getleftside().flip());
 	down.setleftside(temp);
-	cout << "L2 ";
+	//cout << "L2 ";
 }
 
 void Cube::F() {
@@ -425,7 +425,7 @@ void Cube::F() {
 	left.setrightside(down.getupper());
 	down.setupper(right.getleftside().flip());
 	right.setleftside(temp);
-	cout << "F ";
+	//cout << "F ";
 }
 
 void Cube::Fp() {
@@ -435,7 +435,7 @@ void Cube::Fp() {
 	right.setleftside(down.getupper().flip());
 	down.setupper(left.getrightside());
 	left.setrightside(temp.flip());
-	cout << "F' ";
+	//cout << "F' ";
 }
 
 void Cube::F2() {
@@ -451,7 +451,7 @@ void Cube::F2() {
 	left.setrightside(down.getupper());
 	down.setupper(right.getleftside().flip());
 	right.setleftside(temp);
-	cout << "F2 ";
+	//cout << "F2 ";
 }
 
 void Cube::B() {
@@ -461,7 +461,7 @@ void Cube::B() {
 	down.setlower(left.getleftside());
 	left.setleftside(up.getupper().flip());
 	up.setupper(temp);
-	cout << "B ";
+	//cout << "B ";
 }
 
 void Cube::Bp() {
@@ -471,7 +471,7 @@ void Cube::Bp() {
 	up.setupper(left.getleftside().flip());
 	left.setleftside(down.getlower());
 	down.setlower(temp.flip());
-	cout << "B' ";
+	//cout << "B' ";
 }
 
 void Cube::B2() {
@@ -487,7 +487,7 @@ void Cube::B2() {
 	down.setlower(left.getleftside());
 	left.setleftside(up.getupper().flip());
 	up.setupper(temp);
-	cout << "B2 ";
+	//cout << "B2 ";
 }
 
 void Cube::D() {
@@ -497,7 +497,7 @@ void Cube::D() {
 	left.setlower(back.getlower());
 	back.setlower(right.getlower());
 	right.setlower(temp);
-	cout << "D ";
+	//cout << "D ";
 }
 
 void Cube::Dp() {
@@ -507,7 +507,7 @@ void Cube::Dp() {
 	right.setlower(back.getlower());
 	back.setlower(left.getlower());
 	left.setlower(temp);
-	cout << "D' ";
+	//cout << "D' ";
 }
 
 void Cube::D2() {
@@ -523,5 +523,5 @@ void Cube::D2() {
 	left.setlower(back.getlower());
 	back.setlower(right.getlower());
 	right.setlower(temp);
-	cout << "D2 ";
+	//cout << "D2 ";
 }

@@ -1,88 +1,62 @@
 #include "utils.h"
 
-int main(){
+vector<vector<Cube>> grabCubeState(int amount){
 
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-	// INSTRUCTION :
-	// 1) Represent states using patterns only
-	// 2) Try to reach step 1, then step 2, etc
-	// 3) While trying to reach states, remember the useful operations
-	// 4) Create logic to reach states from experimentation (hard)
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-
-	cout << "Welcome to the 2x2 Rubik's Cube Solver!" << endl << endl;
+	vector<vector<Cube>> cubeStateSuperList;
 	
-	// CUBE INIT
-	////////////////////////////////////////////////////
-
-    srand(23);
-
-	Cube c, solvedCube;
-	inputSolvedCube(solvedCube);
-	vector<vector<Cube>> testCubeSuperList;
-		
-	Set setFront{"front"}, setRight{"right"}, setBack{"back"}, setLeft{"left"}, setUp{"up"}, setDown{"down"};
-	vector<Set*> setList = {&setFront, &setRight, &setBack, &setLeft, &setUp, &setDown};
+	Cube c;
 	
-	// MODIFY TO GET VECTOR OF STATE PER CUBE
-	for(int i=0; i<100; i++){
+	for(int i=0; i<amount; i++){
 	
-		c = solvedCube;
+		inputSolvedCube(c);
 		
 		streambuf* old_cout = mute();
 		
 		generateTestCube(c, 5000);
-		vector<Cube> testCubeList = beginnersMethod(c);
+		vector<Cube> cubeStateList = beginnersMethod(c);
 		
 		activate(old_cout);
 		
-		for(int j=1; j<testCubeList.size(); j++){
-			if(testCubeList[j] == testCubeList[j-1]){
-        		testCubeList.erase(testCubeList.begin() + j);
+		for(int j=1; j<cubeStateList.size(); j++){
+			if(cubeStateList[j] == cubeStateList[j-1]){
+        		cubeStateList.erase(cubeStateList.begin() + j);
 				j--;
 			}
 		}
 		
-		if(testCubeList.size()==9) testCubeSuperList.push_back(testCubeList);
+		if(cubeStateList.size()==8) cubeStateSuperList.push_back(cubeStateList);
 		else i--;
 	}
 	
-	//return 1;
-	
-	// SEARCH SIMILARITIES
-	////////////////////////////////////////////////////
-	
+	return cubeStateSuperList;
+}
+
+vector<SC> getCommonSC(vector<vector<Cube>> cubeStateSuperList, vector<Set*> &setList){
+
 	vector<SC> scStateList;
-	
+
 	// For each state of the resolution
-	for(int j=0; j<testCubeSuperList[0].size(); j++){
+	for(int j=0; j<cubeStateSuperList[0].size(); j++){
 	
+		// Load data from first cube
 		SC scState;
-		
-		loadSet(setList, testCubeSuperList[0][j]);
+		loadSet(setList, cubeStateSuperList[0][j]);
 		vector<Set> initList;
 		for(Set* ptr : setList) initList.push_back(*ptr);
-			
+		
+		// Compare with itself to get all characteristics
 		vector<pair<Set*,int>> similarList = getSimilarList(initList, setList);
 		
-		// For each cube
-		for(int i=1; i<testCubeSuperList.size(); i++){
+		// Compare found characteristics with each other cube
+		for(int i=1; i<cubeStateSuperList.size(); i++){
 		
-			//testCubeSuperList[0][1].displayCube();
-			loadSet(setList, testCubeSuperList[i][j]);
-			//testCubeSuperList[i][1].displayCube();
+			// Load next cube
+			loadSet(setList, cubeStateSuperList[i][j]);
 			
-			vector<Set> setListPrev;
-			for(Set* ptr : setList) setListPrev.push_back(*ptr);
+			// Search similarities
+			vector<pair<Set*,int>> newSimilarList = getSimilarList(initList, setList);
 			
-			loadSet(setList, testCubeSuperList[i-1][j]);
-			
-			vector<pair<Set*,int>> newSimilarList = getSimilarList(setListPrev, setList);
-			
-			
-			//cout << "==========" << endl;
+			// Keep all the same values
 			vector<pair<Set*,int>> correctedList;
 			for(pair<Set*,int> similar : similarList){
 				for(pair<Set*,int> newSimilar : newSimilarList){
@@ -92,47 +66,39 @@ int main(){
 					}
 				}
 			}
-			
 			similarList = correctedList;
-		
 		}
 		
-		//cout << "===============" << endl;
-		if(similarList.size()==0); //cout << "No similarity" << endl;
+		// For each common pattern between all cubes from a state
+		for(auto similar : similarList){
 		
-		else{
-			for(auto similar : similarList){
-				//cout << "Similar " << j << ": " << similar.first->name << " -> " << similar.second << endl;
-				
-				loadSet(setList, testCubeSuperList[0][j]);
-				
-				PEV equalValue;
-				equalValue.valueList.push_back(similar);
-				equalValue.equalValueList.push_back(similar.first->valueList[similar.second]);
-				
-				scState.pevList.push_back(equalValue);
-				
-			}
+			// Load data to store in Sub-Condition state
+			loadSet(setList, cubeStateSuperList[0][j]);
+			
+			// Exctraction of the common values
+			PEV equalValue;
+			equalValue.valueList.push_back(similar);
+			equalValue.equalValueList.push_back(similar.first->valueList[similar.second]);
+			
+			// Push to Sub-Condition
+			scState.pevList.push_back(equalValue);
+			
 		}
 		scStateList.push_back(scState);
 	}
 	
-	inputSolvedCube(c);
-	
-	vector<vector<int>> actionSuperList;
-	vector<Cube> outcomeCube;
-	
-	getCubeList(1, actionSuperList, outcomeCube, vector<int>(), c);
-	
-	/*for(int i=0; i<actionSuperList.size(); i++){
-		vector<int> actionList = actionSuperList[i];
-		for(int action : actionList) cout << action << " ";
-		cout << endl;
-		outcomeCube[i].displayCube();
-	}*/
-	
-	
+	return scStateList;
+
+}
+
+Map acquireMap(vector<vector<int>> actionSuperList, vector<Set*> &setList){
+
+	Map map;
+	Cube c;
+
 	for(int i=0; i<actionSuperList.size(); i++){
+	
+		// PHASE 1 : DETECT CHANGES
 		vector<pair<Set*,int>> differentList;
 		for(int j=0; j<10; j++){
 		
@@ -141,6 +107,7 @@ int main(){
 			generateTestCube(c, 500);
 			
 			loadSet(setList, c);
+			// Create a copy of the states
 			vector<Set> initList;
 			for(Set* ptr : setList) initList.push_back(*ptr);
 			
@@ -163,484 +130,425 @@ int main(){
 			}
 		}
 		
-		
+		// SORT AND DISPLAY
     	sort(differentList.begin(), differentList.end(), sortSet);
-    
-		cout << "------------------" << endl;
+		/*cout << "------------------" << endl;
 		for(int action : actionSuperList[i]) cout << action << " ";
 		cout << endl;
 		for(pair<Set*,int> different : differentList){
 			cout << different.first->name << "/" << different.second << endl;
 		}
-		cout << "==================" << endl;
+		cout << "==================" << endl;*/
 		
+		
+		vector<pair<Set*,int>> firstPos;
+		vector<pair<Set*,int>> secondPos;
+		
+		// Action representation
+		ActionState newActionState;
+		newActionState.actionList = actionSuperList[i];
+		
+		// PHASE 2 : LINK CHANGES
+		for(pair<Set*,int> different : differentList){
+			vector<pair<int,int>> commonValuefinal;
+			for(int j=0; j<10; j++){
+			
+				streambuf* old_cout = mute();
+				generateTestCube(c, 500);
+				
+				// Extract states
+				loadSet(setList, c);
+				vector<Set> initList;
+				for(Set* ptr : setList) initList.push_back(*ptr);
+				
+				// Do actions
+				for(int action : actionSuperList[i]) directAction({0,action},c);
+				
+				// Extract states
+				loadSet(setList, c);
+				activate(old_cout);
+				
+				vector<pair<int,int>> commonValue = searchCommonValue(initList, different);
+				
+				if(j==0) commonValuefinal = commonValue;
+				else{
+					for(int k=0; k<commonValuefinal.size(); k++){
+						pair<int,int> value = commonValuefinal[k];
+						if(find(commonValue.begin(), commonValue.end(), value) == commonValue.end()){
+							commonValuefinal.erase(commonValuefinal.begin() + k);
+							k--;
+						}
+					}
+				}
+			}
+			
+			// Now place that in action state :)
+			for(pair<int,int> value : commonValuefinal){
+				//cout << setList[value.first]->name << "/" << value.second << " goes at " << different.first->name << "/" << different.second << endl;
+				newActionState.firstPos.push_back({setList[value.first],value.second});
+				newActionState.secondPos.push_back({different});
+			}
+		}			
+		map.actionStateList.push_back(newActionState);
+		map.outChecked.push_back(false);
 	}
 	
+	return map;
+}
+
+
+bool checkStateInMap(vector<vector<bool>> &uniqueIdentifiersList, ActionState &newActionState){
+	
+	vector<bool> uniqueIdentifiers = generateUniqueIdentifiers(newActionState.firstPos, newActionState.secondPos);
+
+    if(binarySearch(uniqueIdentifiersList, uniqueIdentifiers)) return true;
+    insertSorted(uniqueIdentifiersList, uniqueIdentifiers);
+    return false;
+	
+}
+
+void getActionStateGeneration(Map &basicMap, Map &fullMap, int ID, vector<vector<bool>> &uniqueIdentifiersList){
+
+	ActionState currentActionState = fullMap.actionStateList[ID];
+	
+	for(int i=0; i<basicMap.actionStateList.size(); i++){
+	
+		ActionState basicActionState = basicMap.actionStateList[i];
+		
+		ActionState newActionState;
+		for(int action : currentActionState.actionList) newActionState.actionList.push_back(action);
+		for(int action : basicActionState.actionList) newActionState.actionList.push_back(action);
+		
+		vector<bool> fuzedValueList(basicActionState.firstPos.size(), false);
+		vector<bool> touchedValueList(currentActionState.firstPos.size(), false);
+		
+		for(int j=0; j<basicActionState.firstPos.size(); j++){
+			for(int k=0; k<currentActionState.firstPos.size(); k++){
+				
+				if(currentActionState.secondPos[k] == basicActionState.firstPos[j]){
+					if(currentActionState.firstPos[k] != basicActionState.secondPos[j]){
+						newActionState.firstPos.push_back(currentActionState.firstPos[k]);
+						newActionState.secondPos.push_back(basicActionState.secondPos[j]);
+					}
+					
+					touchedValueList[k] = true;
+					fuzedValueList[j] = true;
+					break;
+				}
+			}
+		}
+		
+		for(int j=0; j<currentActionState.firstPos.size(); j++){
+			if(touchedValueList[j]) continue;
+			newActionState.firstPos.push_back(currentActionState.firstPos[j]);
+			newActionState.secondPos.push_back(currentActionState.secondPos[j]);
+		}
+		
+		for(int j=0; j<basicActionState.firstPos.size(); j++){
+			if(fuzedValueList[j]) continue;
+			newActionState.firstPos.push_back(basicActionState.firstPos[j]);
+			newActionState.secondPos.push_back(basicActionState.secondPos[j]);
+		}
+		
+		if(!checkStateInMap(uniqueIdentifiersList, newActionState)){
+			fullMap.actionStateList.push_back(newActionState);
+			fullMap.outChecked.push_back(false);
+		}
+		
+	}
+}
+
+Map expandMap(Map basicMap, int depth){
+
+	Map fullMap;
+	fullMap.actionStateList.push_back(ActionState());
+	fullMap.outChecked.push_back(false);
+	
+	int mapSize = fullMap.actionStateList.size();
+	vector<vector<bool>> uniqueIdentifiersList;
+	uniqueIdentifiersList.push_back(vector<bool>(576, false));
+			
+	for(int j=0; j<depth; j++){
+		cout << "Checking move " << j+1 << "..." << endl;
+		
+		for(int i=0; i<mapSize; i++){
+			if(fullMap.outChecked[i]) continue;
+			getActionStateGeneration(basicMap, fullMap, i, uniqueIdentifiersList);
+			fullMap.outChecked[i] = true;
+		}
+		mapSize = fullMap.actionStateList.size();
+		cout << "Found outcome: " << fullMap.actionStateList.size() << endl;
+	}
+	
+	return fullMap;
+
+}
+
+vector<pair<Set*,int>> searchEqualValue(vector<Set*> &setList, int equalValue){
+
+	vector<pair<Set*,int>> equalValueList;
+	
+	for(Set* set : setList){
+		for(int i=0; i<set->valueList.size(); i++){
+			if(set->valueList[i] == equalValue){
+				//cout << "      Found: " << set->name << i << endl;
+				equalValueList.push_back({set,i});
+			}
+		}
+	}
+	
+	return equalValueList;
+	
+}
+
+
+int searchAppropriateMove(Map fullMap, vector<vector<pair<Set*,int>>> elementPositionList, vector<pair<Set*,int>> destinationList){
+	
+	// For every action sequence
+	for(int i=0; i<fullMap.actionStateList.size(); i++){
+		ActionState actionState = fullMap.actionStateList[i];
+		
+		vector<bool> respectedMove(destinationList.size(), false);
+	
+		// For every value shift
+		for(int j=0; j<destinationList.size(); j++){
+		
+			for(pair<Set*,int> element : elementPositionList[j]){
+				if(element==destinationList[j]){
+					respectedMove[j] = true;
+					break;
+				}
+			}
+		
+			for(int k=0; k<actionState.firstPos.size(); k++){
+			
+				// Extract current shift
+				pair<Set*,int> firstPos = actionState.firstPos[k];
+				pair<Set*,int> secondPos = actionState.secondPos[k];
+				
+				if(destinationList[j]!=secondPos) continue;
+				respectedMove[j] = false;
+				
+				for(pair<Set*,int> element : elementPositionList[j]){
+					if(firstPos == element){
+						respectedMove[j] = true;
+						break;
+					}
+				}
+				break;
+			}
+			
+			if(respectedMove[j] == false) break;
+		}
+		
+		if(all_of(respectedMove.begin(), respectedMove.end(), [](bool val){ return val; })) return i;			
+	}
+	
+	return -1;
+	
+}
+
+
+
+int main(){
+
+	cout << "Welcome to the 2x2 Rubik's Cube Solver!" << endl << endl;
+	
+	// CUBE AND SET INIT
+	////////////////////////////////////////////////////
+
+    srand(26);
+	Cube c;
+		
+	Set setFront{"front"}, setRight{"right"}, setBack{"back"}, setLeft{"left"}, setUp{"up"}, setDown{"down"};
+	vector<Set*> setList = {&setFront, &setRight, &setBack, &setLeft, &setUp, &setDown};
 	
 	
+	// ACQUIRE TEMPORARY STATES FROM CORRECTION
+	////////////////////////////////////////////////////
+	
+	vector<vector<Cube>> cubeStateSuperList = grabCubeState(100);
 	
 	
+	// IDENTIFY SIMILARITIES IN STATES
+	////////////////////////////////////////////////////
 	
-	return 1;
+	cout << "Analyzing states from correction..." << endl;
+	vector<SC> scStateList = getCommonSC(cubeStateSuperList, setList);
+	cout << "List of temporary states to reach established!" << endl << endl;
 	
-	// States to reach
+	
+	// GENERATE LIST OF ACTIONS (AND THEIR OUTCOME)
+	////////////////////////////////////////////////////
+	
+	inputSolvedCube(c);
+	
+	vector<vector<int>> actionSuperList;
+	vector<Cube> outcomeCube;
+	
+	cout << "Acquiring first set of moves..." << endl;
+	getCubeList(1, actionSuperList, outcomeCube, vector<int>(), c);
+	cout << "Acquired!" << endl << endl;
+	
+	
+	// MAP EVERY ACTION
+	////////////////////////////////////////////////////
+	
+	Map basicMap = acquireMap(actionSuperList, setList);
+	Map fullMap = expandMap(basicMap, 4);
+	
+	// DISPLAY SUB-CONDITIONS TO REACH STATES
+	////////////////////////////////////////////////////
+	
 	cout << endl << "States to reach" << endl;
 	cout << "=============" << endl;
-	for(int i=1; i<scStateList.size()-1; i++){
+	for(int i=1; i<scStateList.size(); i++){
 		cout << "State " << i << ":" << endl;
 		printSC(scStateList[i]);
 	}
 	
+	// REACH ALL STATES FROM KNOWN MOVES ON RANDOM CUBE
+	////////////////////////////////////////////////////
+	
 	cout << endl;
 	generateTestCube(c, 20);
 	
-	//vector<Cube> testCubeList = beginnersMethod(c);
+	cout << "<-------------------------->" << endl;
+	cout << "METHOD : EXPLORE ALL COMBINATION" << endl;
+	cout << "<-------------------------->" << endl << endl;
+    auto start = chrono::high_resolution_clock::now();
 	
-	for(int i=0; i<9; i++){
-		cout << "=========" << endl;
+	// 5 897 milliseconds for 4 trials
+	// 68 751 milliseconds for 5 trials
+	for(int i=0; i<scStateList.size(); i++){
 		cout << "GOAL : STATE " << i << endl;
-		cout << "=========" << endl;
 	
 		vector<vector<int>> actionSeriesList;
 		
-		int nbTrial = 5;
-		for(int j=1; j<nbTrial; j++){
+		cout << "----------------" << endl;
+		
+		int nbTrial = 4;
+		for(int j=1; j<nbTrial+1; j++){
 	
-			if(!findState(j, actionSeriesList, vector<int>(), setList, c, scStateList[i])){
+			if(findState(j, actionSeriesList, vector<int>(), setList, c, scStateList[i])){
+				cout << "Found solution [Action: ";
+				if(actionSeriesList.size()>0){
+					for(int action : actionSeriesList.back()){
+						directAction({0, action}, c);
+						cout << action << " ";
+					}
+				}
+				cout << "]" << endl;
+				break;	
+			}
+			
+			actionSeriesList.clear();
+			if(j==nbTrial){
 				cout << "No solution found..." << endl;
-				if(j==nbTrial-1){
-					cout << "Trying randomly breaks at some point, time to apply logic" << endl;
-					exit(1);	
-				}
+				c = cubeStateSuperList[0][i];
 			}
-			else{
-				cout << "Solution found!" << endl;
-				break;
-			}
-		
 		}
 		
-		if(actionSeriesList.size()>0){
-			for(int action : actionSeriesList.back()) directAction({0, action}, c);
-		}
-		cout << endl;		
-		c.displayCube();		
-		
+		cout << "----------------" << endl;
+	
+		c.displayCube();
 	}
 	
-	return 1;
+    auto end = chrono::high_resolution_clock::now();
+	auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+	cout << "<==========================>" << endl;
+    cout << "Time taken (all): " << int(duration.count()/1000) << " milliseconds" << endl;
+	cout << "<==========================>" << endl << endl;
 	
-	// ALL VARIABLES / CONDITIONS
-	////////////////////////////////////////////////////
 	
-	// SEARCH PATTERN
+	generateTestCube(c, 20);
 	
-	PCV sUp, cF, cR1, cR2, cB, cL;
-	sUp.valueList = {{&setUp,0},{&setUp,1},{&setUp,2},{&setUp,3}};
-	cF.valueList = {{&setFront,0},{&setFront,1}};
-	cR1.valueList = {{&setRight,0},{&setRight,1}};
-	cR2.valueList = {{&setRight,2},{&setRight,3}};
-	cB.valueList = {{&setBack,0},{&setBack,1}};
-	cL.valueList = {{&setLeft,0},{&setLeft,1}};
-	vector<PCV> crownState = {cF, cB, cR1, cL, sUp};
+	cout << "<-------------------------->" << endl;
+	cout << "METHOD : USE GENERATED CHART" << endl;
+	cout << "<-------------------------->" << endl << endl;
+    start = chrono::high_resolution_clock::now();
 	
-	PCV pcvA, pcvB, pcvC, pcvD, pcvE, pcvF;
-	pcvA.valueList = {{&setFront,0},{&setFront,1},{&setFront,3},{&setDown,2}};
-	pcvB.valueList = {{&setBack,0},{&setBack,1},{&setFront,2},{&setDown,3}};
-	pcvC.valueList = {{&setRight,0},{&setRight,1},{&setBack,2},{&setBack,3}};
-	pcvD.valueList = {{&setLeft,0},{&setLeft,1},{&setDown,0},{&setDown,1}};
-	pcvE.valueList = {{&setUp,0},{&setUp,1},{&setUp,2},{&setUp,3}};
-	pcvF.valueList = {{&setLeft,2},{&setLeft,3},{&setRight,2},{&setRight,3}};
-	vector<PCV> testState = {pcvA, pcvB, pcvC, pcvD, pcvE, pcvF};
-	
-	//for(PCV pcv : crownState) printPCV(pcv);
-	//cout << endl;
-	
-	// Compare every state
-	for(int i=0; i<testCubeSuperList[0].size()*0+1; i++){
+	// 99 milliseconds for 4 trials
+	// 785 milliseconds microseconds for 5 trials
+	for(int i=0; i<scStateList.size(); i++){
+		loadSet(setList, c);
+		cout << "GOAL : STATE " << i << endl;
 		
-		vector<PCV> pCVL1 = stateComposition(setList, testCubeSuperList[0][i]);
-		vector<PCV> pCorrected = pCVL1;
+		// LOCATE ALL SPECIFIC VALUES
+		vector<vector<pair<Set*,int>>> elementPositionList;
+		vector<pair<Set*,int>> destinationList;
 		
-		//pCorrected = testState;
-		pCorrected = crownState;
-		
-		for(int j=1; j<testCubeSuperList.size(); j++){
+		// For each PEV condition of the lsit
+		for(PEV statePEV : scStateList[i].pevList){
 			
-			int bestCorr(0);
-			vector<PCV> bestPCVList;
-			
-			for(int k=0; k<testCubeSuperList[j].size()-2; k++){
-			
-				vector<PCV> pCVL2 = stateComposition(setList, testCubeSuperList[j][k]);
-				//cout << "CHECKING" << endl;
-				vector<PCV> pchecking = correctComposition(pCorrected, pCVL2);
-				//cout << "FINISHED" << endl;
+			// For each position value of the condition
+			for(pair<Set*,int> value : statePEV.valueList){
 				
-				//cout << "Check:" << endl;
-				//for(PCV pcv : pchecking) printPCV(pcv);
+				// For each accepted value
+				for(int equalValue : statePEV.equalValueList){
+					//cout << endl << "     = " << equalValue << endl;
 				
-				//testCubeSuperList[j][k].displayCube();
-				
-				int currentDataSize(0);
-				for(PCV pcv : pchecking) currentDataSize += pcv.valueList.size();
-				if(currentDataSize > bestCorr){
-					//cout << "Better: " << k << endl;
-					bestCorr = currentDataSize;
-					bestPCVList = pchecking;
-				}
-			}
-			pCorrected = bestPCVList;
-			
-		}
-		cout << "Best:" << endl;
-		for(PCV pcv : pCorrected) printPCV(pcv);
-		
-	}
-	
-	return 1;
-
-	// ALL PATTERN WE SHOULD FIND
-	////////////////////////////////////////////////////
-	
-	// White side correct
-	PEV sUWhite, sDWhite;
-	sUWhite.valueList = {{&setUp,0},{&setUp,1},{&setUp,2},{&setUp,3}};
-	sUWhite.equalValueList = {0};
-	sDWhite.valueList = {{&setDown,0},{&setDown,1},{&setDown,2},{&setDown,3}};
-	sDWhite.equalValueList = {0};
-	
-	// Crown correct
-	PCV sFUp, sFDown, sRUp, sRDown, sBUp, sBDown, sLUp, sLDown;
-	sFUp.valueList = {{&setFront,0},{&setFront,1}};
-	sFDown.valueList = {{&setFront,2},{&setFront,3}};
-	sRUp.valueList = {{&setRight,0},{&setRight,1}};
-	sRDown.valueList = {{&setRight,2},{&setRight,3}};
-	sBUp.valueList = {{&setBack,0},{&setBack,1}};
-	sBDown.valueList = {{&setBack,2},{&setBack,3}};
-	sLUp.valueList = {{&setLeft,0},{&setLeft,1}};
-	sLDown.valueList = {{&setLeft,2},{&setLeft,3}};
-		
-	// VERIFY CROWN STATE
-	////////////////////////////////////////////////////
-	
-	// Requirement : all 6 faces set, comparition of all crown results
-
-	SC crownCompleteUp;
-	crownCompleteUp.pcvList = {sFUp, sRUp, sBUp, sLUp};
-	crownCompleteUp.pevList = {sUWhite};
-	
-	SC crownCompleteDown;
-	crownCompleteDown.pcvList = {sFDown, sRDown, sBDown, sLDown};
-	crownCompleteDown.pevList = {sDWhite};
-
-	TC crownComplete{"crownComplete"};
-	crownComplete.conditionList = {{{},{crownCompleteDown}},
-								   {{},{crownCompleteUp}}};
-	
-	printTC(crownComplete);					   
-	bool crownCompleteChecked = checkTC(crownComplete);
-	
-	return 1;
-	
-	// PROCESSING
-	////////////////////////////////////////////////////
-	
-	
-	// 1) I want to see how to achieve my goal
-	
-	// Check if face1 complete
-	
-	/*systemAction({1,0,2,0}, probeValue, trashCond, c);
-	systemAction({0,0,0,1}, probeValue, t2ok, c);
-	systemAction({0,0,3,0}, probeValue, trashCond, c);
-	systemAction({0,0,0,2}, probeValue, t3ok, c);
-	systemAction({0,0,4,0}, probeValue, trashCond, c);
-	systemAction({0,0,0,3}, probeValue, t4ok, c);*/
-	
-	// 2) Direct way (solved) not functionnal, checking way (4-correct) to solved
-	
-	// 3) Way to solved (4-correct) not functionnal, checking way (crown) to 4-correct
-	
-	// 4) Way to 4-correct (crown) FUNCTIONNAL, applying protocol crown->4-correct
-	
-	
-	
-	// check if one face is white
-	// check if crown correct
-	
-	
-	
-	
-	c.displayCube();
-	
-	return 1;
-	
-	////////////////////////////////////////////////////
-	////////////////////////////////////////////////////
-	
-	
-	//Scond face1SolvedCond;
-	//Scond rubikSolvedCond = {{}};
-	
-	bool face1Complete(false), face2Complete(false), face3Complete(false),
-	face4Complete(false), face5Complete(false), face6Complete(false);
-	
-	// rubik's cube solved
-	bool rubikSolved = face1Complete && face2Complete && face3Complete
-						&& face4Complete && face5Complete && face6Complete;
-	
-	////////////////////////////////////////////////////
-	////////////////////////////////////////////////////
-	
-	//return 1;
-	
-	// Orientate it like in the video
-	c.moveSide(1);
-	c.moveSide(1);
-	c.moveSide(2);
-	c.moveSide(2);
-	
-	c.displayCube();
-	
-	/////////////////////////////////////
-	// SEARCH WHITE CROWN
-	/////////////////////////////////////
-	
-	
-	bool fullWhite(false);
-	bool crown1(false), crown2(false), crown3(false), crown4(false);
-	bool noDoubleCrown(false);
-	
-	vector<int> seriesOfMove = {1,1,1,2,2,2,-1};
-	vector<int> crownColors;
-	
-	// Check white side
-	for(int move : seriesOfMove){
-		if(c.front.getupper().getleft()==0
-		&& c.front.getupper().getright()==0
-		&& c.front.getlower().getleft()==0
-		&& c.front.getlower().getright()==0){
-			cout << "Found you" << endl;
-			fullWhite = true;
-			break;
-		}
-		cout << "Move " << move << endl;
-		c.moveSide(move);
-	}
-	
-	c.displayCube();
-	
-	// Check crown 1
-	c.moveSide(2);
-	c.displayCube();
-	if(c.front.getlower().getleft() == c.front.getlower().getright()){
-		crown1 = true;
-		crownColors.push_back(c.front.getlower().getleft());
-	}
-	
-	// Check crown 2
-	c.moveSide(1);
-	c.displayCube();
-	if(c.front.getlower().getleft() == c.front.getlower().getright()){
-		crown2 = true;
-		crownColors.push_back(c.front.getlower().getleft());
-	}
-	
-	// Check crown 3
-	c.moveSide(1);
-	c.displayCube();
-	if(c.front.getlower().getleft() == c.front.getlower().getright()){
-		crown3 = true;
-		crownColors.push_back(c.front.getlower().getleft());
-	}
-	
-	// Check crown 4
-	c.moveSide(1);
-	c.displayCube();
-	if(c.front.getlower().getleft() == c.front.getlower().getright()){
-		crown4 = true;
-		crownColors.push_back(c.front.getlower().getleft());
-	}
-	
-	// Check no double crown
-	if(crownColors[0] != crownColors[1] && crownColors[0] != crownColors[2] && crownColors[0] != crownColors[3]
-	&& crownColors[1] != crownColors[2] && crownColors[1] != crownColors[3] && crownColors[2] != crownColors[3]){
-		noDoubleCrown = true;
-	}
-	
-	if(fullWhite && crown1 && crown2 && crown3 && crown4 && noDoubleCrown){
-		cout << "FUNCTIONNAL" << endl;
-	}
-	
-	// PROTOCOL CROWN -> 4-CORRECT
-	
-	bool solved1(false), solved2(false), solved3(false), solved4(false);
-	
-	c.moveSide(1);
-	c.moveSide(1);
-	c.displayCube();
-	
-	int val1, val2, val3, val4, val5;
-	bool val1Valid, val2Valid, val3Valid;
-	
-	// Check solved 1
-	val1 = c.front.getupper().getright(), val2 = c.up.getlower().getright(), val3 = c.right.getupper().getleft();
-	val4 = c.front.getlower().getright(), val5 = c.right.getlower().getleft();
-	val1Valid = false, val2Valid = false, val3Valid = false;
-	if(val1 == val4 || val1 == val5) val1Valid = true;
-	if(val2 == val4 || val2 == val5) val2Valid = true;
-	if(val3 == val4 || val3 == val5) val3Valid = true;
-	if(val1Valid && val2Valid || val1Valid && val3Valid || val2Valid && val3Valid) solved1 = true;
-	
-	// Check solved 2
-	c.moveSide(1);
-	c.displayCube();
-	
-	val1 = c.front.getupper().getright(), val2 = c.up.getlower().getright(), val3 = c.right.getupper().getleft();
-	val4 = c.front.getlower().getright(), val5 = c.right.getlower().getleft();
-	val1Valid = false, val2Valid = false, val3Valid = false;
-	if(val1 == val4 || val1 == val5) val1Valid = true;
-	if(val2 == val4 || val2 == val5) val2Valid = true;
-	if(val3 == val4 || val3 == val5) val3Valid = true;
-	if(val1Valid && val2Valid || val1Valid && val3Valid || val2Valid && val3Valid) solved2 = true;
-	
-	// Check solved 3
-	c.moveSide(1);
-	c.displayCube();
-	
-	val1 = c.front.getupper().getright(), val2 = c.up.getlower().getright(), val3 = c.right.getupper().getleft();
-	val4 = c.front.getlower().getright(), val5 = c.right.getlower().getleft();
-	val1Valid = false, val2Valid = false, val3Valid = false;
-	if(val1 == val4 || val1 == val5) val1Valid = true;
-	if(val2 == val4 || val2 == val5) val2Valid = true;
-	if(val3 == val4 || val3 == val5) val3Valid = true;
-	if(val1Valid && val2Valid || val1Valid && val3Valid || val2Valid && val3Valid) solved3 = true;
-	
-	
-	// Check solved 4
-	c.moveSide(1);
-	c.displayCube();
-	
-	val1 = c.front.getupper().getright(), val2 = c.up.getlower().getright(), val3 = c.right.getupper().getleft();
-	val4 = c.front.getlower().getright(), val5 = c.right.getlower().getleft();
-	val1Valid = false, val2Valid = false, val3Valid = false;
-	if(val1 == val4 || val1 == val5) val1Valid = true;
-	if(val2 == val4 || val2 == val5) val2Valid = true;
-	if(val3 == val4 || val3 == val5) val3Valid = true;
-	if(val1Valid && val2Valid || val1Valid && val3Valid || val2Valid && val3Valid) solved4 = true;
-	
-	cout << solved1 << "/" << solved2 << "/" << solved3 << "/" << solved4 << endl;
-	
-	// PROTOCOL 4-CORRECT -> SOLVED
-	
-	// Search color section on top
-	int lastColor;
-	for(int i=1; i<6; i++){
-		bool colorIn(false);
-		for(int color : crownColors){
-			if(color==i){
-				colorIn = true;
-				break;
+					// Define destination
+					destinationList.push_back({value.first, value.second});
+					
+					// Acquire list of values around
+					elementPositionList.push_back(searchEqualValue(setList, equalValue));
+				}	
 			}
 		}
-		if(!colorIn){
-			lastColor = i;
-			break;
-		}
-	}
-	
-	cout << "Last color: " << lastColor << endl;
-	
-	// Orientate it like in the video
-	c.moveSide(1);
-	c.moveSide(1);
-	c.moveSide(2);
-	c.moveSide(2);
-	
-	while(c.front.getlower().getright() != lastColor && c.front.getlower().getleft() != lastColor){
-		c.moveSide(1);
-	}	
-	
-	while(!c.isSolved()){
-	//for(int i=0; i<2; i++){
 		
-		//if(c.isSolved()) break;
-		while(c.front.getlower().getright() != lastColor && c.front.getlower().getleft() != lastColor && !c.isSolved()){
-			c.Dp();
-		}
+		int actionStateID = searchAppropriateMove(fullMap, elementPositionList, destinationList);
 		
-		if(c.isSolved()) break;
+		cout << "----------------" << endl;
+		if(actionStateID!=-1){
+			cout << "Found path n°" << actionStateID;
+			vector<int> actionSeries = fullMap.actionStateList[actionStateID].actionList;
+			cout << " [Action: ";
+			for(int action : actionSeries){
+				directAction({0, action}, c);
+				cout << action << " ";
+			}
+			cout << "]" << endl;
+		}
+		else{
+			cout << "No path found..." << endl;
+			c = cubeStateSuperList[0][i];
+		}
+		cout << "----------------" << endl;
+		
 		c.displayCube();
 		
-		bool leftPart(false);
-		if(c.front.getlower().getleft() == lastColor) leftPart = true;
-		
-		bool lastColorShifted(false);
-		while(!lastColorShifted){
-		
-			cout << "Turn..." << endl;
-		
-			c.R();
-			c.U();
-			c.Rp();
-			c.Up();
-		
-			if(leftPart && c.down.getupper().getleft() == lastColor) lastColorShifted = true;
-			else if (c.down.getupper().getright() == lastColor)	lastColorShifted = true;
-		}
-		
-		cout << "Ok" << endl;
 	}
 	
-	cout << "Congrats." << endl;
+    end = chrono::high_resolution_clock::now();
+	duration = chrono::duration_cast<chrono::microseconds>(end - start);
+	cout << "<==========================>" << endl;
+    cout << "Time taken (map): " << int(duration.count()/1000) << " milliseconds" << endl;
+	cout << "<==========================>" << endl;
 	
-	
-	c.displayCube();
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	// Crown is complete
-	
-	/*cout << ">> " << c.up.getupper().getleft() << endl;
-	cout << ">> " << c.up.getupper().getright() << endl;
-	cout << ">> " << c.up.getlower().getleft() << endl;
-	cout << ">> " << c.up.getlower().getright() << endl;
-	
-	cout << ">> " << c.front.getupper().getleft() << endl;
-	cout << ">> " << c.front.getupper().getright() << endl;
-	
-	cout << ">> " << c.back.getupper().getleft() << endl;
-	cout << ">> " << c.back.getupper().getright() << endl;
-	
-	cout << ">> " << c.right.getupper().getleft() << endl;
-	cout << ">> " << c.right.getupper().getright() << endl;
-	
-	cout << ">> " << c.left.getupper().getleft() << endl;
-	cout << ">> " << c.left.getupper().getright() << endl;*/
-	
-	/*c.R();
-	c.Rp();
-	c.L();
-	c.Lp();
-	c.F();
-	c.Fp();
-	c.B();
-	c.Bp();
-	c.D();
-	c.Dp();*/
-	
-	//beginnersMethod(c);
-	
-	return 0;
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

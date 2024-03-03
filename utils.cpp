@@ -14,9 +14,38 @@ bool sortSet(const pair<Set*, int>& a, const pair<Set*, int>& b){
     return a.second < b.second;
 }
 
+bool compareVectors(const vector<bool>& a, const vector<bool>& b){
+    return lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+}
+
+void insertSorted(vector<vector<bool>>& sortedVector, const vector<bool>& vec){
+    auto it = lower_bound(sortedVector.begin(), sortedVector.end(), vec, compareVectors);
+    sortedVector.insert(it, vec);
+}
+
+bool binarySearch(const vector<vector<bool>>& sortedVector, const vector<bool>& target){
+    return binary_search(sortedVector.begin(), sortedVector.end(), target, compareVectors);
+}
+
+size_t generateIdentifier(const pair<Set*,int> &firstPos, const pair<Set*,int> &secondPos){
+    static const unordered_map<string, int> nameToIndex = {
+        {"front", 0}, {"left", 1}, {"back", 2}, {"right", 3}, {"up", 4}, {"down", 5}
+    };
+    return (nameToIndex.at(firstPos.first->name) * 96) + firstPos.second * 24 + (nameToIndex.at(secondPos.first->name) * 4) + secondPos.second;
+}
+
+vector<bool> generateUniqueIdentifiers(const vector<pair<Set*,int>>& firstPos, const vector<pair<Set*,int>>& secondPos) {
+    vector<bool> uniqueIdentifiers(576, false);
+    for(size_t i = 0; i < firstPos.size(); i++){
+        size_t identifier = generateIdentifier(firstPos[i], secondPos[i]);
+        uniqueIdentifiers[static_cast<int>(identifier)] = true;
+    }
+    return uniqueIdentifiers;
+}
+
 
 // Swap (0:4), Turn (0:18)
-void directAction(vector<int> actionList, Cube &c){
+void directAction(vector<int> actionList, Cube &c){		
 	// Change side
 	if(actionList[0] != 0) c.moveSide(actionList[0]-1);
 	// Rotate cube	
@@ -152,6 +181,28 @@ bool checkTC(TC tcOriginal){
 	return false;
 }
 
+vector<pair<int,int>> searchCommonValue(vector<Set> initList, pair<Set*,int> different){
+
+	vector<pair<int,int>> commonValue;
+
+	//cout << endl << "Search different: ";
+	//cout << different.first->name << " / " << different.second << " / " << different.first->valueList[different.second] << endl;
+	
+	for(int i=0; i<initList.size(); i++){
+		Set set = initList[i];
+		for(int j=0; j<set.valueList.size(); j++){
+			if(set.valueList[j] == different.first->valueList[different.second]){
+				//cout << "Match: " << set.name << " / " << j << endl;
+				commonValue.push_back({i,j});
+			}
+		}
+	}
+	
+	return commonValue;
+	
+	// Need left 0
+}
+
 vector<PCV> stateComposition(vector<Set*>& setList, Cube &c){
 	loadSet(setList, c);
 	//c.displayCube();
@@ -274,37 +325,10 @@ void getCubeList(int remainingMove, vector<vector<int>> &actionSeriesList, vecto
 	
 	currentActionSeries.push_back(-1);
 
+	// Try each possible move
 	for(int i=0; i<18; i++){
-	
-		streambuf* old_cout = mute();
-	
-		// Try each possible move
-		switch(i){
-		case 0: c.U();   break;
-		case 1: c.Up();  break;
-		case 2: c.U2();  break;
-		case 3: c.R();   break;
-		case 4: c.Rp();  break;
-		case 5: c.R2();  break;
-		case 6: c.L();   break;
-		case 7: c.Lp();  break;
-		case 8: c.L2();  break;
-		case 9: c.F();   break;
-		case 10: c.Fp(); break;
-		case 11: c.F2(); break;
-		case 12: c.B();  break;
-		case 13: c.Bp(); break;
-		case 14: c.B2(); break;
-		case 15: c.D();  break;
-		case 16: c.Dp(); break;
-		case 17: c.D2(); break;
-		}
 		
-		activate(old_cout);
-		
-		// 15, 11, 7
-		
-		//cout << remainingMove << " -> " << i << "/18" << endl;
+		directAction({0,i}, c);
 		
 		currentActionSeries[currentActionSeries.size()-1] = i;
 		if(remainingMove==1){
@@ -313,7 +337,6 @@ void getCubeList(int remainingMove, vector<vector<int>> &actionSeriesList, vecto
 		}
 		
 		getCubeList(remainingMove-1, actionSeriesList, outcomeCube, currentActionSeries, c);
-		
 		c = copy;
 	}
 }
@@ -330,37 +353,10 @@ bool findState(int remainingMove, vector<vector<int>> &actionSeriesList, vector<
 	
 	currentActionSeries.push_back(-1);
 
+	// Try each possible move
 	for(int i=0; i<18; i++){
 	
-		streambuf* old_cout = mute();
-	
-		// Try each possible move
-		switch(i){
-		case 0: c.U();   break;
-		case 1: c.Up();  break;
-		case 2: c.U2();  break;
-		case 3: c.R();   break;
-		case 4: c.Rp();  break;
-		case 5: c.R2();  break;
-		case 6: c.L();   break;
-		case 7: c.Lp();  break;
-		case 8: c.L2();  break;
-		case 9: c.F();   break;
-		case 10: c.Fp(); break;
-		case 11: c.F2(); break;
-		case 12: c.B();  break;
-		case 13: c.Bp(); break;
-		case 14: c.B2(); break;
-		case 15: c.D();  break;
-		case 16: c.Dp(); break;
-		case 17: c.D2(); break;
-		}
-		
-		activate(old_cout);
-		
-		// 15, 11, 7
-		
-		//cout << remainingMove << " -> " << i << "/18" << endl;
+		directAction({0,i}, c);
 		
 		currentActionSeries[currentActionSeries.size()-1] = i;
 		if(remainingMove==1) actionSeriesList.push_back(currentActionSeries);
@@ -400,23 +396,10 @@ void generateTestCube(Cube &c, int iteration) {
 	inputSolvedCube(c);
 	/* Perform 20 random turns to scramble the cube */
 	int turn;
-	cout << "Turns from solved cube: ";
+	//cout << "Turns from solved cube: ";
 	for (int i = 0; i < iteration; i++) {
-		turn = rand() % 12; // 12 possible turns
-		switch (turn) {
-		case 0: c.U(); break;
-		case 1: c.Up(); break;
-		case 2: c.R(); break;
-		case 3: c.Rp(); break;
-		case 4: c.L(); break;
-		case 5: c.Lp(); break;
-		case 6: c.F(); break;
-		case 7: c.Fp(); break;
-		case 8: c.B(); break;
-		case 9: c.Bp(); break;
-		case 10: c.D(); break;
-		case 11: c.Dp(); break;
-		}
+		turn = rand() % 18; // 18 possible turns
+		directAction({0,turn}, c);
 	}
 
 	c.displayCube();

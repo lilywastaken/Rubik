@@ -199,6 +199,7 @@ void firstLayer(Cube &c, vector<Cube> &cubeList) {
 	/* Find and place the top right cubie */
 	temp = c;
 	cubeList.push_back(c);
+	cout << "-=-=-=-=-=-=-=-" << endl;
 	cout << "Placing the top right cubie: ";
 	if (!u.getupper().getright() &&
 		b.getupper().getleft() == 3 &&
@@ -348,6 +349,7 @@ void firstLayer(Cube &c, vector<Cube> &cubeList) {
 	/* Find and place the bottom left cubie */
 	temp = c;
 	cubeList.push_back(c);
+	cout << "-=-=-=-=-=-=-=-" << endl;
 	cout << "Placing the bottom left cubie: ";
 	if (!u.getlower().getleft() &&
 		f.getupper().getleft() == 1 &&
@@ -494,6 +496,7 @@ void firstLayer(Cube &c, vector<Cube> &cubeList) {
 	/* Find and place the final bottom right cubie */
 	temp = c;
 	cubeList.push_back(c);
+	cout << "-=-=-=-=-=-=-=-" << endl;
 	cout << "Placing the bottom right cubie: ";
 	if (!u.getlower().getright() &&
 		f.getupper().getright() == 1 &&
@@ -698,6 +701,7 @@ void orientFinal(Cube &c, vector<Cube> &cubeList) {
 	/* Determine which of the orientations the cube is in */
 	int ori = -1; // orientation
 	cubeList.push_back(c);
+	cout << "-=-=-=-=-=-=-=-" << endl;
 	cout << "To align: ";
 	string n = "No alignment necessary.";
 	// U orientation == 0
@@ -849,7 +853,7 @@ void orientFinal(Cube &c, vector<Cube> &cubeList) {
 
 	/* Solve based on orientation */
 	temp = c;
-	cubeList.push_back(c);
+	cout << "-=-=-=-=-=-=-=-" << endl;
 	cout << "Solve layer and orient sides: ";
 	switch (ori) {
 	case 0: 
@@ -1104,11 +1108,13 @@ vector<Cube> beginnersMethod(Cube &c) {
 	cout << endl << endl << "Your cube should now look like this:";
 	c.displayCube();
 	cubeList.push_back(c);
+	cout << "-=-=-=-=-=-=-=-" << endl;
 	cout << "STEP 2: To orient the final layer:" << endl;
 	orientFinal(c, cubeList);
 	cout << endl << endl << "Your cube should now look like this:";
 	c.displayCube();
 	cubeList.push_back(c);
+	cout << "-=-=-=-=-=-=-=-" << endl;
 	cout << "STEP 3: To solve the final layer:" << endl;
 	solveFinal(c, cubeList);
 	cout << endl << endl;

@@ -94,7 +94,7 @@ vector<PCV> stateComposition(vector<Set*>& setList, Cube &c);
 vector<PCV> correctComposition(vector<PCV> pCVL1, vector<PCV> pCVL2);
 vector<pair<Set*,int>> getSimilarList(vector<Set> setListPrev, vector<Set*> &setListNew);
 vector<pair<Set*,int>> getDifferentList(vector<Set> setListPrev, vector<Set*> &setListNew);
-void getCubeList(int remainingMove, vector<vector<int>> &actionSeriesList, vector<Cube> &outcomeCube, vector<int> currentActionSeries, Cube c);
+void getActionList(int remainingMove, vector<vector<int>> &actionSeriesList, vector<int> currentActionSeries, Cube c);
 bool findState(int remainingMove, vector<vector<int>> &actionSeriesList, vector<int> currentActionSeries, vector<Set*>& setList, Cube c, SC scCondition);
 
 void inputSolvedCube(Cube &c);

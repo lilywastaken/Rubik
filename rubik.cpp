@@ -384,10 +384,9 @@ int main(){
 	inputSolvedCube(c);
 	
 	vector<vector<int>> actionSuperList;
-	vector<Cube> outcomeCube;
 	
 	cout << "Acquiring first set of moves..." << endl;
-	getCubeList(1, actionSuperList, outcomeCube, vector<int>(), c);
+	getActionList(1, actionSuperList, vector<int>(), c);
 	cout << "Acquired!" << endl << endl;
 	
 	

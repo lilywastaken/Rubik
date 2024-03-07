@@ -317,7 +317,7 @@ vector<pair<Set*,int>> getDifferentList(vector<Set> setListPrev, vector<Set*> &s
 }
 
 
-void getCubeList(int remainingMove, vector<vector<int>> &actionSeriesList, vector<Cube> &outcomeCube, vector<int> currentActionSeries, Cube c){
+void getActionList(int remainingMove, vector<vector<int>> &actionSeriesList, vector<int> currentActionSeries, Cube c){
 		
 	if(remainingMove==0) return;
 		
@@ -331,12 +331,9 @@ void getCubeList(int remainingMove, vector<vector<int>> &actionSeriesList, vecto
 		directAction({0,i}, c);
 		
 		currentActionSeries[currentActionSeries.size()-1] = i;
-		if(remainingMove==1){
-			actionSeriesList.push_back(currentActionSeries);
-			outcomeCube.push_back(c);
-		}
+		if(remainingMove==1) actionSeriesList.push_back(currentActionSeries);
 		
-		getCubeList(remainingMove-1, actionSeriesList, outcomeCube, currentActionSeries, c);
+		getActionList(remainingMove-1, actionSeriesList, currentActionSeries, c);
 		c = copy;
 	}
 }
